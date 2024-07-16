@@ -1,7 +1,7 @@
 from pysinewave import SineWave
 
 
-class Tone:
+class SineTone:
     def __init__(self, pitch_per_second=960, decibels_per_second=1000):
         super().__init__()
 
@@ -64,8 +64,13 @@ class Tone:
 
 
 if __name__ == "__main__":
-    tone = Tone()
+    import time
+
+    tone = SineTone()
     tone.play()
-    tone.change_freq(300)
-    tone.change_lr_balance(-0.5)
-    input()
+    tone.change_freq(200)
+
+    for a in range(0, 100, 2):
+        lr_balance = (a - 50) / 100
+        tone.change_lr_balance(lr_balance)
+        time.sleep(0.1)

@@ -9,12 +9,15 @@ readme = "README.md"
 python = "~3.12"
 numpy = "~2.0"
 opencv-contrib-python = "~4.10"
-sounddevice = "~0.4"
 pysinewave = "~0.0"
+python-openal = "~0.4"
+scipy = "~1.14"
+sounddevice = "~0.4"
 
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.4.2"
+black = "^24"
+matplotlib = "^3.9.1"
 
 [build-system]
 requires = ["poetry-core"]

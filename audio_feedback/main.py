@@ -2,7 +2,7 @@ import cv2 as cv
 
 from audio_feedback.camera import CameraThread, load_intrinsic, load_extrinsic
 from audio_feedback.recognition import HSVColorModel, RecognitionThread
-from audio_feedback.tones import Tone
+from audio_feedback.tones import SineTone
 
 camera_no = 1
 
@@ -27,7 +27,7 @@ camera_thread.set_perspective(transformation_matrix, output_size)
 recognition_thread = RecognitionThread(model)
 
 # setup feedback tone
-tone = Tone(
+tone = SineTone(
     pitch_per_second=960,
     decibels_per_second=1000,
 )

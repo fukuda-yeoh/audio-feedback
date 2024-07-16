@@ -1,1 +1,1 @@
-from .tone import Tone
+from .sine_tone import SineTone
