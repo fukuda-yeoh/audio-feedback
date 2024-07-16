@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "audio-feedback"
+version = "0.1.0"
+description = ""
+authors = ["wenliangyeoh <wlyeoh@cc.saga-u.ac.jp>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.12"
+numpy = "~2.0"
+opencv-contrib-python = "~4.10"
+sounddevice = "~0.4"
+pysinewave = "~0.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.4.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
