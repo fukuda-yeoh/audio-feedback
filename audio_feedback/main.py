@@ -1,17 +1,18 @@
 import cv2 as cv
 
 from audio_feedback.camera import CameraThread, load_intrinsic, load_extrinsic
+from audio_feedback.defs import project_root
 from audio_feedback.recognition import HSVColorModel, RecognitionThread
 from audio_feedback.tones import SineTone
 
 camera_no = 1
 
 intrinsic_matrix, distortion_coeffs, fisheye = load_intrinsic(
-    "./calibration/intrinsic.json"
+    project_root() / "calibration" / "intrinsic.json"
 )  # load undistort calibration
 
 transformation_matrix, _, output_size = load_extrinsic(
-    "./calibration/extrinsic.json"
+    project_root() / "calibration" / "extrinsic.json"
 )  # load perspective correction
 
 model = HSVColorModel(
@@ -20,8 +21,11 @@ model = HSVColorModel(
 
 # setup camera thread
 camera_thread = CameraThread(camera_no)
-camera_thread.set_undistort(intrinsic_matrix, distortion_coeffs, fisheye)
-camera_thread.set_perspective(transformation_matrix, output_size)
+if "intrinsic_matrix" in locals():
+    camera_thread.set_undistort(intrinsic_matrix, distortion_coeffs, fisheye)
+if "transformation_matrix" in locals():
+    camera_thread.set_perspective(transformation_matrix, output_size)
+
 
 # setup recognition thread
 recognition_thread = RecognitionThread(model)

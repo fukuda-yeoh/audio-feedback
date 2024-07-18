@@ -24,7 +24,7 @@ def change_perspective(img, transformation_matrix, output_size):
 
 
 if __name__ == "__main__":
-    my_img = cv.imread("./samples/sample.jpg")
+    my_img = cv.imread("../../img_files/sample.jpg")
 
     c_in = [
         [255, 512],

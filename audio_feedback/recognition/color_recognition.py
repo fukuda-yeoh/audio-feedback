@@ -55,8 +55,9 @@ class HSVColorModelResult:
     def __bool__(self):
         return self.detected
 
+
 if __name__ == "__main__":
-    my_img = cv.imread("./samples/sample.jpg")
+    my_img = cv.imread("../../img_files/sample.jpg")
 
     model = HSVColorModel(
         hue_range=(100, 115), saturation_range=(25, 255), value_range=(150, 255)

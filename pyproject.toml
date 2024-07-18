@@ -13,6 +13,7 @@ pysinewave = "~0.0"
 python-openal = "~0.4"
 scipy = "~1.14"
 sounddevice = "~0.4"
+flask = "^3.0.3"
 
 
 [tool.poetry.group.dev.dependencies]
