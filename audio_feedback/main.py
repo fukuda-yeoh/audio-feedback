@@ -16,7 +16,7 @@ transformation_matrix, _, output_size = load_extrinsic(
 )  # load perspective correction
 
 model = HSVColorModel(
-    hue_range=(100, 115), saturation_range=(25, 255), value_range=(150, 255)
+    hue_range=(100, 120), saturation_range=(144, 255), value_range=(110, 255)
 )
 
 # setup camera thread

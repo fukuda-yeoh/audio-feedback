@@ -10,9 +10,19 @@ class HSVColorModel:
 
     def predict(self, img):
         thresh_img = self.in_range(img)
+        thresh_img = self.dilate(thresh_img)
         x, w, y, h = self.bounding_rect(thresh_img)
 
         return HSVColorModelResult(img, thresh_img, x, w, y, h)
+    
+    def dilate(self, img, size=15):
+        element = cv.getStructuringElement(
+            cv.MORPH_ELLIPSE, (2 * size + 1, 2 * size + 1), (-1, -1)
+        )
+
+        return cv.morphologyEx(
+            img, cv.MORPH_DILATE, element, iterations=1, borderType=cv.BORDER_DEFAULT
+        )
 
     def in_range(self, img):
         hsv = cv.cvtColor(img, cv.COLOR_RGB2HSV)
