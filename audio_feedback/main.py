@@ -1,3 +1,8 @@
+import os
+
+# https://github.com/opencv/opencv/issues/17687
+os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
+
 import cv2 as cv
 
 from audio_feedback.camera import CameraThread, load_intrinsic, load_extrinsic
@@ -25,7 +30,6 @@ if "intrinsic_matrix" in locals():
     camera_thread.set_undistort(intrinsic_matrix, distortion_coeffs, fisheye)
 if "transformation_matrix" in locals():
     camera_thread.set_perspective(transformation_matrix, output_size)
-
 
 # setup recognition thread
 recognition_thread = RecognitionThread(model)
