@@ -1,4 +1,6 @@
+import ctypes
 import wave
+from math import radians, cos, sin
 
 from openal import al, alc
 
@@ -16,7 +18,9 @@ class Listener:
         self.device = alc.alcOpenDevice(None)
         self.context = alc.alcCreateContext(self.device, None)
         alc.alcMakeContextCurrent(self.context)
-        self._position = (0, 0, 0)
+        self._position = (0.0, 0.0, 0.0)
+        self._velocity = (0.0, 0.0, 0.0)
+        self._orientation = ((1.0, 0.0, 0.0), (0.0, 0.0, 1.0))
 
     @property
     def position(self):
@@ -25,8 +29,28 @@ class Listener:
     @position.setter
     def position(self, pos):
         self._position = pos
-        x, y, z = map(int, pos)
-        al.alListener3f(al.AL_POSITION, x, y, z)
+        al.alListener3f(al.AL_POSITION, *pos)
+
+    @property
+    def velocity(self):
+        return self._velocity
+
+    @velocity.setter
+    def velocity(self, vel):
+        self._velocity = vel
+        al.alListener3f(al.AL_VELOCITY, *vel)
+
+    @property
+    def orientation(self):
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, orientation):
+        self._orientation = orientation
+        al.alListenerfv(
+            al.AL_ORIENTATION,
+            (ctypes.c_float * 6)(*self._orientation[0], *self._orientation[1]),
+        )
 
     def __del__(self):
         alc.alcDestroyContext(self.context)
@@ -48,7 +72,8 @@ class Source:
         # set internal variable tracking
         self._volume = 1.0
         self._pitch = 1.0
-        self._position = [0, 0, 0]
+        self._position = (0.0, 0.0, 0.0)
+        self._velocity = (0.0, 0.0, 0.0)
         self._rolloff = 1.0
         self._loop = False
 
@@ -81,8 +106,16 @@ class Source:
     @position.setter
     def position(self, pos):
         self._position = pos
-        x, y, z = map(int, pos)
-        al.alSource3f(self.source, al.AL_POSITION, x, y, z)
+        al.alSource3f(self.source, al.AL_POSITION, *pos)
+
+    @property
+    def velocity(self):
+        return self._velocity
+
+    @velocity.setter
+    def velocity(self, vel):
+        self._velocity = vel
+        al.alSource3f(self.source, al.AL_VELOCITY, *vel)
 
     @property
     def pitch(self):
@@ -188,8 +221,14 @@ if __name__ == "__main__":
     sound_file = project_root() / "sound_files" / "droplet.wav"
     my_sound = Sound(sound_file)
 
-    # set listener and source positions
+    # set listener positions
     listener.position = (320, 240, 0)
+    listener.orientation = (
+        (1.0, 0.0, 0.0),  # front vector
+        (0.0, 0.0, 1.0),  # up vector
+    )
+
+    # set source positions
     source.position = (0, 240, 0)
 
     # load sound into source
@@ -199,8 +238,22 @@ if __name__ == "__main__":
     source.play()
 
     # move sound from left to right
+    print("moving left to right")
     for a in range(0, 640, 10):
         source.position = (a, 240, 0)
+        time.sleep(0.1)
+
+    # rotate listener
+    print("rotating listener a single round")
+    source.position = (0, 240, 0)
+    listener.position = (320, 240, 0)
+    for theta in range(0, 360, 5):
+        x = cos(radians(theta))
+        y = sin(radians(theta))
+        listener.orientation = (
+            (x, y, 0.0),  # front vector
+            (0.0, 0.0, 1.0),  # up vector
+        )
         time.sleep(0.1)
 
     # stop player
