@@ -13,6 +13,8 @@ from audio_feedback.recognition import HSVColorModel, RecognitionThread
 from audio_feedback.tones import Listener, Sound, Source
 
 
+p_id = 1
+condition = 1
 
 camera_no = 1
 
@@ -73,8 +75,8 @@ if not os.path.exists(output_dir):
 def start_recording():
     # ファイル名を決定
     existing_files = os.listdir(output_dir)
-    video_number = len([f for f in existing_files if f.startswith('movie')]) + 1
-    output_filename = os.path.join(output_dir, f'movie{video_number}.mp4')
+    video_number = len([f for f in existing_files if f.startswith(f'{p_id}-{condition}-')]) + 1
+    output_filename = os.path.join(output_dir, f'{p_id}-{condition}-{video_number}.mp4')
     
     # ビデオライターを初期化
     fourcc = cv.VideoWriter_fourcc(*'mp4v')  #  エンコーダーを指定
