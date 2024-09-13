@@ -19,8 +19,8 @@ class Listener:
         self.context = alc.alcCreateContext(self.device, None)
         alc.alcMakeContextCurrent(self.context)
         self._position = (0.0, 0.0, 0.0)
-        self._velocity = (0.0, 0.0, 0.0)
-        self._orientation = ((1.0, 0.0, 0.0), (0.0, 0.0, 1.0))
+        self._velocity = (0.0, 0.0, 0.0) #速度
+        self._orientation = ((1.0, 0.0, 0.0), (0.0, 0.0, 1.0)) #方向
 
     @property
     def position(self):
@@ -73,7 +73,7 @@ class Source:
         self._volume = 1.0
         self._pitch = 1.0
         self._position = (0.0, 0.0, 0.0)
-        self._velocity = (0.0, 0.0, 0.0)
+        self._velocity = (0.0, 0.0, 0.0) #速度
         self._rolloff = 1.0
         self._loop = False
 
@@ -255,7 +255,7 @@ if __name__ == "__main__":
             (0.0, 0.0, 1.0),  # up vector
         )
         time.sleep(0.1)
-
+        
     # stop player
     source.stop()
 

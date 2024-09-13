@@ -10,16 +10,17 @@ from audio_feedback.defs import project_root
 from audio_feedback.recognition import HSVColorModel, RecognitionThread
 from audio_feedback.tones import SineTone
 
-camera_no = 1
+camera_no = 0
 
 intrinsic_matrix, distortion_coeffs, fisheye = load_intrinsic(
     project_root() / "calibration" / "intrinsic.json"
 )  # load undistort calibration
 
-transformation_matrix, _, output_size = load_extrinsic(
-    project_root() / "calibration" / "extrinsic.json"
-)  # load perspective correction
+# transformation_matrix, _, output_size = load_extrinsic(
+#     project_root() / "calibration" / "extrinsic.json"
+# )  # load perspective correction
 
+# モデルのHSVの設定
 model = HSVColorModel(
     hue_range=(100, 120), saturation_range=(144, 255), value_range=(110, 255)
 )
@@ -54,7 +55,6 @@ while True:
 
     if result:
         center = result.center
-
         img_width = frame.shape[0]
         lr_balance = (center[0] - (img_width / 2)) / img_width
         tone.change_lr_balance(lr_balance)
@@ -63,7 +63,6 @@ while True:
         tone.change_vol(-60)
 
     cv.imshow(f"Camera {camera_no}", result.annotated_img)
-
     if cv.waitKey(1) == ord("q"):
         recognition_thread.stop()
         recognition_thread.in_queue.put(frame)
