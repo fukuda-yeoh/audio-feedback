@@ -18,8 +18,8 @@ def get_object_center(mask):
 
 
 # HSV色範囲を設定
-lower_blue = np.array([100, 180, 110])
-upper_blue = np.array([130, 240, 255])
+lower_light_blue = np.array([110, 200, 150])  # 水色の範囲に変更
+upper_light_blue = np.array([120, 255, 255])
 
 lower_orange = np.array([10, 150, 100])
 upper_orange = np.array([25, 255, 255])
@@ -60,10 +60,10 @@ for f in video_dir.glob("*.mp4"):
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         # 青色とオレンジ色のマスクを作成
-        mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
+        mask_light_blue = cv2.inRange(hsv, lower_light_blue, upper_light_blue)
         mask_orange = cv2.inRange(hsv, lower_orange, upper_orange)
 
-        center_blue = get_object_center(mask_blue)
+        center_blue = get_object_center(mask_light_blue)
         center_orange = get_object_center(mask_orange)
 
         if center_blue:
