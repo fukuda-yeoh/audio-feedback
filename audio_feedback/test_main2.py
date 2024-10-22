@@ -38,9 +38,9 @@ source = Source()
 sound_file = project_root() / "sound_files" / "droplet.wav"
 my_sound = Sound(sound_file)
 
-# Set listener and source positions (初期位置)
-listener.position = (0, 240, 0)  # 画面左端の中央
-listener.orientation = ((-1.0, 0.0, 0.0), (0.0, 0.0, 1.0))  # x方向(右方向)，z方向（上方向）を向いている
+# Set listener and source positions (head-mounted, dynamic adjustment needed)
+listener.position = (0, 0, 0)  # Assume listener is the user’s head
+listener.orientation = ((0.0, 0.0, -1.0), (0.0, 1.0, 0.0))  # Forward-facing orientation
 
 # Load sound into source
 source.add_sound(my_sound)
@@ -49,12 +49,22 @@ source.rolloff = 0.05  # 音量の減衰の仕方を決める
 source.play()
 source_sound_on = True
 
-# Function to calculate volume based on distance
+# Function to calculate volume based on distance (forward-backward)
 def calculate_volume(distance, reference_distance=1.0, max_volume=200.0, min_volume=20.0):
     if distance < reference_distance:
         distance = reference_distance
     volume = max_volume / (distance / reference_distance) ** 2
     return max(min(volume, max_volume), min_volume)
+
+# Function to calculate panning based on left/right ball position
+def calculate_pan(x_position, img_width):
+    pan = (x_position - img_width / 2) / (img_width / 2)
+    return pan  # Value between -1 (left) and 1 (right)
+
+# Function to modulate sound pitch based on vertical position
+def calculate_pitch(y_position, img_height):
+    pitch = 1.0 + (y_position / img_height)  # Pitch scales from 1.0 to 2.0
+    return pitch
 
 # 録画ファイルの保存ディレクトリ
 output_dir = "videos"
@@ -105,18 +115,24 @@ try:
 
         if result:
             center = result.center
-            img_width, img_height, _ = color_image.shape #カラー画像のサイズ取得
+            img_width, img_height, _ = color_image.shape  # カラー画像のサイズ取得
             
             # Set the ball's position based on its center
             ball_position = (center[0], center[1], 0)
             source.position = ball_position
 
-            # Compute the distance between the listener and the ball
+            # Compute the distance between the listener (head) and the ball
             distance = np.linalg.norm(np.array(ball_position[:2]) - np.array(listener.position[:2]))
             volume = calculate_volume(distance)
-    
-            # Set the volume
             source.volume = volume
+
+            # Calculate panning and pitch based on ball's position
+            pan = calculate_pan(center[0], img_width)
+            pitch = calculate_pitch(center[1], img_height)
+            
+            # Apply panning (left-right) and pitch (up-down)
+            source.pan = pan
+            source.pitch = pitch
 
             # Get the depth at the center of the object (convert center coordinates to integers)
             center_x = int(center[0])
@@ -150,10 +166,7 @@ try:
             )
 
             # Draw a circle at the center of the recognized object
-            #cv.circle(color_image, (center_x, center_y), 10, (0, 255, 0), 2)
-
-            # Draw a rectangle around the recognized object (assuming a 50x50 size for demonstration)
-            cv.rectangle(color_image, (center_x - 25, center_y - 25), (center_x + 25, center_y + 25), (0, 255, 0), 2)
+            cv.circle(color_image, (center_x, center_y), 10, (0, 255, 0), 2)
 
             if not source_sound_on:
                 source.play()
@@ -161,7 +174,6 @@ try:
         else:
             source.stop()
             source_sound_on = False
-
 
         # Display the camera feed with annotations
         cv.imshow("RealSense Camera", color_image)
