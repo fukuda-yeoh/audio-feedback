@@ -1,8 +1,15 @@
+import os
+
+from audio_feedback.defs import project_root
+
+os.environ["PYAL_DLL_PATH"] = str(project_root() / "resources" / "soft_oal.dll")
+
 import ctypes
 import wave
 from math import radians, cos, sin
 
-from openal import al, alc
+from openal import al, alc, is_openal_soft
+print(is_openal_soft())
 
 format_map = {
     (1, 8): al.AL_FORMAT_MONO8,
@@ -21,6 +28,13 @@ class Listener:
         self._position = (0.0, 0.0, 0.0)
         self._velocity = (0.0, 0.0, 0.0) #速度
         self._orientation = ((1.0, 0.0, 0.0), (0.0, 0.0, 1.0)) #方向
+
+        # get list of available htrf tables
+        self.hrtf_buffers = [alc.ALCint(), alc.ALCint * 4, alc.ALCint()]
+        alc.alcGetIntegerv(self.device, alc.ALC_NUM_HRTF_SPECIFIERS_SOFT, 1, self.hrtf_buffers[0])
+
+        # attributes for device to set specified hrtf table
+        self.hrtf_select = self.hrtf_buffers[1](alc.ALC_HRTF_SOFT, alc.ALC_TRUE, alc.ALC_HRTF_ID_SOFT, 1)
 
     @property
     def position(self):
@@ -51,6 +65,38 @@ class Listener:
             al.AL_ORIENTATION,
             (ctypes.c_float * 6)(*self._orientation[0], *self._orientation[1]),
         )
+
+    @property
+    def hrtf_tables(self):
+        """list number of available hrtf tables"""
+        return self.hrtf_buffers[0].value
+
+    @property
+    def hrtf(self):
+        """confirm hrtf has been loaded and is enabled"""
+        alc.alcGetIntegerv(self.device, alc.ALC_HRTF_SOFT, 1, self.hrtf_buffers[2])
+        if self.hrtf_buffers[2].value == alc.ALC_HRTF_DISABLED_SOFT:
+            return False
+        elif self.hrtf_buffers[2].value == alc.ALC_HRTF_ENABLED_SOFT:
+            return True
+        elif self.hrtf_buffers[2].value == alc.ALC_HRTF_DENIED_SOFT:
+            return False
+        elif self.hrtf_buffers[2].value == alc.ALC_HRTF_REQUIRED_SOFT:
+            return True
+        elif self.hrtf_buffers[2].value == alc.ALC_HRTF_HEADPHONES_DETECTED_SOFT:
+            return True
+        elif self.hrtf_buffers[2].value == alc.ALC_HRTF_UNSUPPORTED_FORMAT_SOFT:
+            return False
+
+    @hrtf.setter
+    def hrtf(self, num):
+        """assign hrtf table to device and soft reboot to take effect"""
+        if num == None:
+            alc.alcResetDeviceSOFT(self.device, None)
+        elif num >= 0 and num <= self.hrtf_buffers[0].value:
+            self.hrtf_select[3] = num
+            # reset the device so the new hrtf settings take effect
+            alc.alcResetDeviceSOFT(self.device, self.hrtf_select)
 
     def __del__(self):
         alc.alcDestroyContext(self.context)
@@ -216,6 +262,8 @@ if __name__ == "__main__":
 
     listener = Listener()
     source = Source()
+    print(listener.hrtf_tables)
+
 
     # initialise sound
     sound_file = project_root() / "sound_files" / "droplet.wav"
@@ -237,11 +285,11 @@ if __name__ == "__main__":
     source.rolloff = 0.01
     source.play()
 
-    # move sound from left to right
-    print("moving left to right")
-    for a in range(0, 640, 10):
-        source.position = (a, 240, 0)
-        time.sleep(0.1)
+    # # move sound from left to right
+    # print("moving left to right")
+    # for a in range(0, 640, 10):
+    #     source.position = (a, 240, 0)
+    #     time.sleep(0.1)
 
     # rotate listener
     print("rotating listener a single round")
@@ -255,7 +303,7 @@ if __name__ == "__main__":
             (0.0, 0.0, 1.0),  # up vector
         )
         time.sleep(0.1)
-        
+
     # stop player
     source.stop()
 
