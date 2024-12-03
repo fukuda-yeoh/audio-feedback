@@ -23,18 +23,26 @@ with synthizer.initialized():
     # source = synthizer.AngularPannedSource(context)
     source.add_generator(generator)
     source.play()
+    input()
 
-    distance = 200
+    source.position.value = (10, 20, 0)
+    input()
+
+    source.position.value = (-10, 20, 0)
+    input()
+
+    distance = 20
     # There are 361 steps (degrees) because we need to complete the circle from degree 359 back to 360
     for step in range(0, 361):
         angle = math.radians(step)
-        x, y = math.cos(angle) * distance, math.sin(angle) * distance
+        x = round(math.cos(angle) * distance)
+        y = round(math.sin(angle) * distance)
+        print(f"x = {x}, y = {y}")
         source.position.value = (x, y, 0)
-        source.play()
-        print(source.position.value)
         time.sleep(0.1)
-
+    #
     # for angle in range(0, 360):
     #     print(angle)
     #     source.azimuth.value = angle % 360
     #     time.sleep(0.05)
+    #
