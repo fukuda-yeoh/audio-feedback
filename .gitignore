@@ -191,3 +191,4 @@ cython_debug/
 .hugo_build.lock
 *.ini
 *.mp4
+*.csv
