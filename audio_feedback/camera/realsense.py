@@ -97,6 +97,3 @@ class RealSenseThread(Thread):
         x, y, z = rs.rs2_deproject_pixel_to_point(depth_intrin, pixel_pos, depth)
         return x, y, z
 
-
-if __name__ == "__main__":
-    cam = RealSense()

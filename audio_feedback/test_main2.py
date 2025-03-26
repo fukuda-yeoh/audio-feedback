@@ -1,187 +1,92 @@
-import os
-import cv2 as cv
+#!/usr/bin/env python3
+
+import cv2
+import depthai as dai
+from calc import HostSpatialsCalc
+from utility import *
 import numpy as np
+import math
 
-from audio_feedback.camera import RealSenseThread
-from audio_feedback.recognition import HSVColorModel, RecognitionThread
-from audio_feedback.tones import Listener, Sound, Source
-from audio_feedback.defs import project_root
-from audio_feedback.feedback_augment import calculate_volume
+# Create pipeline
+pipeline = dai.Pipeline()
 
-p_id = 1
-condition = 1
+# Define sources and outputs
+monoLeft = pipeline.create(dai.node.MonoCamera)
+monoRight = pipeline.create(dai.node.MonoCamera)
+stereo = pipeline.create(dai.node.StereoDepth)
 
-a = np.array([[0, 0, 0]])
+# Properties
+monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
+monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
 
-#Realsenseを開始
-realsense_thread = RealSenseThread()
+stereo.initialConfig.setConfidenceThreshold(255)
+stereo.setLeftRightCheck(True)
+stereo.setSubpixel(False)
 
-# モデルのHSVの設定
-model = HSVColorModel(
-    hue_range=(100, 130), saturation_range=(180, 240), value_range=(110, 255)
-)
+# Linking
+monoLeft.out.link(stereo.left)
+monoRight.out.link(stereo.right)
 
-# 物体の認識やトラッキングを行うためのスレッドを生成するクラス
-recognition_thread = RecognitionThread(model, realsense_thread.output_queue)
+xoutDepth = pipeline.create(dai.node.XLinkOut)
+xoutDepth.setStreamName("depth")
+stereo.depth.link(xoutDepth.input)
 
+xoutDepth = pipeline.create(dai.node.XLinkOut)
+xoutDepth.setStreamName("disp")
+stereo.disparity.link(xoutDepth.input)
 
-# 音のフィードバックの設定
-listener = Listener()
-source = Source()
+# Connect to device and start pipeline
+with dai.Device(pipeline) as device:
+    # Output queue will be used to get the depth frames from the outputs defined above
+    depthQueue = device.getOutputQueue(name="depth")
+    dispQ = device.getOutputQueue(name="disp")
 
-# 音
-sound_file = project_root() / "sound_files" / "droplet.wav"
-my_sound = Sound(sound_file)
+    text = TextHelper()
+    hostSpatials = HostSpatialsCalc(device)
+    y = 200
+    x = 300
+    step = 3
+    delta = 5
+    hostSpatials.setDeltaRoi(delta)
 
-# Set listener and source positions (head-mounted, dynamic adjustment needed)
-listener.position = (0, 0, 0)  # Assume listener is the user’s head
-listener.orientation = (
-    (0.0, 0.0, -1.0),
-    (0.0, 1.0, 0.0),
-)  # (リスナーが向いている方向),(リスナーの頭の傾き)
+    print("Use WASD keys to move ROI.\nUse 'r' and 'f' to change ROI size.")
 
-
-# Load sound into source
-source.add_sound(my_sound)
-source.loop = True
-source.rolloff = 0.05  # 音量の減衰の仕方を決める
-source.play()
-source_sound_on = True
-
-
-# 録画ファイルの保存ディレクトリ
-output_dir = "videos"
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
-
-
-# 動画の開始
-def start_recording():
-    existing_files = os.listdir(output_dir)
-    video_number = (
-        len([f for f in existing_files if f.startswith(f"{p_id}-{condition}-")]) + 1
-    )
-    output_filename = os.path.join(output_dir, f"{p_id}-{condition}-{video_number}.mp4")
-
-    fourcc = cv.VideoWriter_fourcc(*"mp4v")  # エンコーダーを指定
-    fps = 30.0  # フレームレート
-    frame_size = (640, 480)  # カメラの解像度に合わせる
-    video_writer = cv.VideoWriter(output_filename, fourcc, fps, frame_size)
-
-    return video_writer
-
-
-# Initialize variables
-video_writer = None
-is_recording = False
-
-# Run
-recognition_thread.start()
-realsense_thread.start()
-
-try:
     while True:
-        # 物体認識の結果処理
-        color_frame, depth_frame, result = recognition_thread.out_queue.get()
-        if color_frame is None:
-            continue
+        depthData = depthQueue.get()
+        # Calculate spatial coordiantes from depth frame
+        spatials, centroid = hostSpatials.calc_spatials(depthData, (x,y)) # centroid == x/y in our case
 
-        color_image = realsense_thread.convert_to_array(color_frame)
-        # If recording, write the frame to the video file
-        if is_recording and video_writer is not None:
-            video_writer.write(color_image)
+        # Get disparity frame for nicer depth visualization
+        disp = dispQ.get().getFrame()
+        disp = (disp * (255 / stereo.initialConfig.getMaxDisparity())).astype(np.uint8)
+        disp = cv2.applyColorMap(disp, cv2.COLORMAP_JET)
 
-        if result:
-            center = result.center
-            img_width, img_height, _ = color_image.shape  # カラー画像のサイズ取得
+        text.rectangle(disp, (x-delta, y-delta), (x+delta, y+delta))
+        text.putText(disp, "X: " + ("{:.1f}m".format(spatials['x']/1000) if not math.isnan(spatials['x']) else "--"), (x + 10, y + 20))
+        text.putText(disp, "Y: " + ("{:.1f}m".format(spatials['y']/1000) if not math.isnan(spatials['y']) else "--"), (x + 10, y + 35))
+        text.putText(disp, "Z: " + ("{:.1f}m".format(spatials['z']/1000) if not math.isnan(spatials['z']) else "--"), (x + 10, y + 50))
 
-            # # Calculate panning and pitch based on ball's position
-            # pan = calculate_pan(center[0], img_width)
-            # pitch = calculate_pitch(center[1], img_height)
+        # Show the frame
+        cv2.imshow("depth", disp)
 
-            # # Apply panning (left-right) and pitch (up-down)
-            # source.pan = pan
-            # source.pitch = pitch
-
-            median_depth = realsense_thread.get_median_depth(center, 5, depth_frame)
-            x, y, z = realsense_thread.convert_to_3d(depth_frame, median_depth, center)
-
-            # Set the ball's position based on its center
-            ball_position = (x, y, z)
-            source.position = ball_position
-
-            # 距離と音量計算
-            distance = np.linalg.norm(
-                np.array(ball_position[:2]) - np.array(listener.position[:2])
-            )
-            volume = calculate_volume(distance)
-            source.volume = volume
-
-            # list = [[x, y, z]]
-            # a = np.append(a, list, axis=0)
-
-            # CSVデータ更新
-            a = np.append(a, [[x, y, z]], axis=0)
-
-            center_x = int(center[0])
-            center_y = int(center[1])
-
-            # 画像に3D座標を注釈として表示
-            cv.putText(
-                color_image,
-                f"Position: ({x:.2f}, {y:.2f}, {z:.2f})",
-                (center_x, center_y - 20),
-                cv.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                (255, 0, 0),
-                2,
-            )
-
-            # 物体認識の確認（緑の丸）
-            cv.circle(color_image, (center_x, center_y), 10, (0, 255, 0), 2)
-
-            if not source_sound_on:
-                source.play()
-                source_sound_on = True
-        else:
-            list = [[-1, -1, -1]]
-            a = np.append(a, list, axis=0)
-            source.stop()
-            source_sound_on = False
-
-        # Display the camera feed with annotations
-        cv.imshow("RealSense Camera", color_image)
-
-        key = cv.waitKey(1)
-
-        # 's' to start recording
-        if key == ord("d"):
-            if not is_recording:
-                video_writer = start_recording()
-                is_recording = True
-                print("録画を開始しました")
-
-        # 'e' to end recording
-        elif key == ord("e"):
-            if is_recording:
-                video_writer.release()
-                is_recording = False
-                print(a)
-                np.savetxt(f"./aaa.csv", a, delimiter=",", fmt="%.3f")
-                print("録画を終了しました")
-
-        # 'q' to quit
-        elif key == ord("q"):
-            recognition_thread.stop()
-            recognition_thread.in_queue.put(color_image)
-            if is_recording:
-                video_writer.release()
-                is_recording = False
+        key = cv2.waitKey(1)
+        if key == ord('q'):
             break
-
-    # np.savetxt(f'../aaa.csv', a, delimiter=',', fmt="%.3f")
-
-
-finally:
-    # Stop the pipeline and close windows
-    cv.destroyAllWindows()
+        elif key == ord('w'):
+            y -= step
+        elif key == ord('a'):
+            x -= step
+        elif key == ord('s'):
+            y += step
+        elif key == ord('d'):
+            x += step
+        elif key == ord('r'): # Increase Delta
+            if delta < 50:
+                delta += 1
+                hostSpatials.setDeltaRoi(delta)
+        elif key == ord('f'): # Decrease Delta
+            if 3 < delta:
+                delta -= 1
+                hostSpatials.setDeltaRoi(delta)
