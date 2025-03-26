@@ -19,7 +19,7 @@ from audio_feedback.feedback_augment import (
 )
  
 p_id = 1
-condition = 1
+condition = 2
 a = np.array([[0, 0, 0]])
  
 # OAK-Dを開始する
