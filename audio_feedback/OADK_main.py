@@ -22,7 +22,7 @@ p_id = 4
 condition = 4
 a = np.array([[0, 0, 0]])
  
-# OAK-D を開始
+# OAK-Dを開始する
 oakd_thread = OAKDThread()
  
 # モデルのHSVの設定
