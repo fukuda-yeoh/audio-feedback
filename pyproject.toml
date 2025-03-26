@@ -6,8 +6,8 @@ authors = ["wenliangyeoh <wlyeoh@cc.saga-u.ac.jp>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "~3.11"
-numpy = "~2.0"
+python = ">=3.11"
+numpy = ">=1.21,<2.0.0"
 opencv-contrib-python = "~4.10"
 pysinewave = "~0.0"
 python-openal = "~0.4"
@@ -15,6 +15,10 @@ scipy = "~1.14"
 sounddevice = "~0.4"
 flask = "^3.0.3"
 synthizer = "^0.12.6"
+seaborn = "^0.13.2"
+openpyxl = "^3.1.5"
+depthai-sdk = "^1.15.1"
+pyrealsense2 = "^2.55.1.6486"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24"
