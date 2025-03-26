@@ -14,21 +14,23 @@ def get_object_center(mask):
             cx = int(M["m10"] / M["m00"])
             cy = int(M["m01"] / M["m00"])
             return (cx, cy)
-    return None
-
 
 # HSV色範囲を設定
-lower_light_blue = np.array([110, 200, 150])  # 水色の範囲に変更
-upper_light_blue = np.array([120, 255, 255])
+lower_light_blue = np.array([100, 90, 40])  # 青色の範囲
+upper_light_blue = np.array([115, 150, 120])
 
-lower_orange = np.array([10, 150, 100])
+# lower_light_blue = np.array([90, 60, 36])  # 青色の範囲q
+# upper_light_blue = np.array([115, 160, 70])
+
+
+lower_orange = np.array([15, 160, 100])
 upper_orange = np.array([25, 255, 255])
 
 # スケールファクター設定 (ピクセルからセンチメートルに変換)
-scale_factor = 0.1  # 例: 1ピクセル = 0.1センチメートル
+scale_factor = 0.311  # 例: 1ピクセル = 0.1センチメートル
 
 # 動画キャプチャ
-video_dir = Path(r"C:\Users\oobuh\卓球\audio-feedback\videos")
+video_dir = Path(r"C:\Users\oobuh\卓球\audio-feedback\analaysis")
 for f in video_dir.glob("*.mp4"):
     p_id, condition, trial = f.stem.split("-")
     cap = cv2.VideoCapture(str(f))  # または動画ファイルのパス
@@ -93,10 +95,10 @@ for f in video_dir.glob("*.mp4"):
             )
 
             # オレンジの物体の位置が x=0 近くの場合、距離を保存
-            if abs(center_orange[0]) < tolerance:
-                with open(output_file, "a", newline="") as csvfile:
-                    writer = csv.writer(csvfile)
-                    writer.writerow([p_id, condition, trial, frame_count, distance_cm])
+            # if abs(center_orange[0]) < tolerance:
+            with open(output_file, "a", newline="") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow([p_id, condition, trial, frame_count, distance_cm])
 
         cv2.imshow("frame", frame)
 
