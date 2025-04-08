@@ -19,7 +19,7 @@ from audio_feedback.feedback_augment import (
 )
  
 p_id = 1
-condition = 2
+condition = 1
 a = np.array([[0, 0, 0]])
  
 # OAK-Dを開始する
@@ -37,9 +37,9 @@ recognition_thread = RecognitionThread(model, oakd_thread.output_queue)
 synthizer.initialize()
 context = synthizer.Context()
 context.default_panner_strategy.value = synthizer.PannerStrategy.HRTF
-context.default_distance_model.value = synthizer.DistanceModel.EXPONENTIAL
+context.default_distance_model.value = synthizer.DistanceModel.LINEAR
  
-sound_file = project_root() / "sound_files" / "1000Hz_v2.wav"
+sound_file = project_root() / "sound_files" / "1000Hz_V2.wav"
 buffer = synthizer.Buffer.from_file(str(sound_file))
 generator = synthizer.BufferGenerator(context)
 generator.gain.value = 1
@@ -49,7 +49,7 @@ generator.looping.value = True
  
 source = synthizer.Source3D(context)
 source.add_generator(generator)
-source.distance_model.value = synthizer.DistanceModel.EXPONENTIAL
+source.distance_model.value = synthizer.DistanceModel.LINEAR
 source.rolloff.value = 1.0
 source.distance_ref.value = 0.4
 source.distance_max.value = 3.2
@@ -124,16 +124,16 @@ try:
 
             # 距離と音量計算
             distance = np.linalg.norm(np.array(ball_position) - np.array([0, 0, 0]))
-            # pitch = LINEAR_pitch(
-            #     distance,
-            #     source.distance_ref.value,
-            #     source.distance_max.value,
-            # )
-            
-            pitch = EXPONENTIAL_pitch(
+            pitch = LINEAR_pitch(
                 distance,
                 source.distance_ref.value,
+                source.distance_max.value,
             )
+            
+            # pitch = EXPONENTIAL_pitch(
+            #     distance,
+            #     source.distance_ref.value,
+            # )
             # pitch = INVERSE_pitch(
             #     distance,
             #     source.distance_ref.value,
