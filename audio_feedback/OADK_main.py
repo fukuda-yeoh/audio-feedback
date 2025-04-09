@@ -10,24 +10,19 @@ from audio_feedback.camera.OAKD import OAKDThread
 from audio_feedback.recognition import HSVColorModel, RecognitionThread
 from audio_feedback.defs import project_root
 from audio_feedback.feedback_augment import (
-    calculate_point_source_gain,
-    calculate_realistic_gain,
-    calculate_gain,
     LINEAR_pitch,
-    EXPONENTIAL_pitch,
-    INVERSE_pitch,
 )
  
 p_id = 1
 condition = 1
-a = np.array([[0, 0, 0]])
+# a = np.array([[0, 0, 0]])
  
 # OAK-Dを開始する
 oakd_thread = OAKDThread()
  
 # モデルのHSVの設定
 model = HSVColorModel(
-    hue_range=(100, 230), saturation_range=(130,240),value_range=(220, 255)
+    hue_range=(100, 240), saturation_range=(130,240),value_range=(180, 255)
 )
 
 # 物体の認識やトラッキングを行うためのスレッドを生成するクラス
@@ -37,9 +32,9 @@ recognition_thread = RecognitionThread(model, oakd_thread.output_queue)
 synthizer.initialize()
 context = synthizer.Context()
 context.default_panner_strategy.value = synthizer.PannerStrategy.HRTF
-context.default_distance_model.value = synthizer.DistanceModel.LINEAR
+context.default_distance_model.value = synthizer.DistanceModel.EXPONENTIAL
  
-sound_file = project_root() / "sound_files" / "1000Hz_V2.wav"
+sound_file = project_root() / "sound_files" / "1000Hz_v2.wav"
 buffer = synthizer.Buffer.from_file(str(sound_file))
 generator = synthizer.BufferGenerator(context)
 generator.gain.value = 1
@@ -49,10 +44,10 @@ generator.looping.value = True
  
 source = synthizer.Source3D(context)
 source.add_generator(generator)
-source.distance_model.value = synthizer.DistanceModel.LINEAR
+source.distance_model.value = synthizer.DistanceModel.EXPONENTIAL
 source.rolloff.value = 1.0
-source.distance_ref.value = 0.4
-source.distance_max.value = 3.2
+source.distance_ref.value = 0.1
+source.distance_max.value = 6.0
 source.play()
 source_sound_on = True
 
@@ -101,22 +96,24 @@ try:
             # 深度フレームを NumPy 配列に変換
             depth_array = depth_frame.getCvFrame()
 
-            #以下のコードは修正用
-             # 深度データの shape 確認
-            depth_height, depth_width = depth_array.shape
-            print(f"Depth frame size: {depth_width}x{depth_height}")
+            
 
-            # 深度データの確認
-            print(depth_array.dtype, depth_array.min(), depth_array.max())
+            # #以下のコードは修正用
+            #  # 深度データの shape 確認
+            # depth_height, depth_width = depth_array.shape
+            # print(f"Depth frame size: {depth_width}x{depth_height}")
 
-            center_x, center_y = int(center[0]), int(center[1])
+            # # 深度データの確認
+            # print(depth_array.dtype, depth_array.min(), depth_array.max())
 
-            # インデックスが範囲内か確認
-            if 0 <= center_x < depth_width and 0 <= center_y < depth_height:
-                print(z, depth_array[center_y, center_x])  # z座標と元の深度値
-            else:
-                print(f"Warning: Center ({center_x}, {center_y}) is out of depth frame bounds.")
-            #ここまで
+            # center_x, center_y = int(center[0]), int(center[1])
+
+            # # インデックスが範囲内か確認
+            # if 0 <= center_x < depth_width and 0 <= center_y < depth_height:
+            #     print(z, depth_array[center_y, center_x])  # z座標と元の深度値
+            # else:
+            #     print(f"Warning: Center ({center_x}, {center_y}) is out of depth frame bounds.")
+            # #ここまで
 
             # Set the ball's position based on its center
             ball_position = (x, -y, -z)
@@ -124,11 +121,12 @@ try:
 
             # 距離と音量計算
             distance = np.linalg.norm(np.array(ball_position) - np.array([0, 0, 0]))
-            pitch = LINEAR_pitch(
-                distance,
-                source.distance_ref.value,
-                source.distance_max.value,
-            )
+            
+            # pitch = LINEAR_pitch(
+            #     distance,
+            #     source.distance_ref.value,
+            #     source.distance_max.value,
+            # )
             
             # pitch = EXPONENTIAL_pitch(
             #     distance,
@@ -139,11 +137,11 @@ try:
             #     source.distance_ref.value,
             # )
 
-            generator.pitch_bend.value = pitch  
+            # generator.pitch_bend.value = pitch  
             # print(distance,generator.pitch_bend.value)
 
             # CSVデータ更新
-            a = np.append(a, [[x, y, z]], axis=0)
+            # a = np.append(a, [[x, y, z]], axis=0)
 
             center_x = int(center[0])
             center_y = int(center[1])
@@ -166,8 +164,8 @@ try:
                 source.play()
                 source_sound_on = True
         else:
-            list = [[-1, -1, -1]]
-            a = np.append(a, list, axis=0)
+            # list = [[-1, -1, -1]]
+            # a = np.append(a, list, axis=0)
             source.pause()
             source_sound_on = False
 

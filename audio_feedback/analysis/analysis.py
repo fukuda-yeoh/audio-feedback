@@ -16,8 +16,12 @@ def get_object_center(mask):
             return (cx, cy)
 
 # HSV色範囲を設定
-lower_light_blue = np.array([100, 90, 40])  # 青色の範囲
-upper_light_blue = np.array([115, 150, 120])
+lower_light_blue = np.array([90, 90, 20])  # 青色の範囲
+upper_light_blue = np.array([115, 150, 100])
+
+# lower_light_blue = np.array([145, 150, 30])  # H: 145, S: やや高め, V: 低め
+# upper_light_blue = np.array([165, 220, 110])  # H: 165, S: 少し広め, V: 低め
+
 
 # lower_light_blue = np.array([90, 60, 36])  # 青色の範囲q
 # upper_light_blue = np.array([115, 160, 70])
@@ -30,7 +34,7 @@ upper_orange = np.array([25, 255, 255])
 scale_factor = 0.311  # 例: 1ピクセル = 0.1センチメートル
 
 # 動画キャプチャ
-video_dir = Path(r"C:\Users\oobuh\卓球\audio-feedback\analaysis")
+video_dir = Path(r"C:\Users\fukud\OneDrive\デスクトップ\obu\audio-feedback\analaysis")
 for f in video_dir.glob("*.mp4"):
     p_id, condition, trial = f.stem.split("-")
     cap = cv2.VideoCapture(str(f))  # または動画ファイルのパス
