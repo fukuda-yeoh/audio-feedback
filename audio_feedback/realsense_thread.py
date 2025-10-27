@@ -6,15 +6,11 @@ import pyrealsense2 as rs
 
 
 class RealSenseThread(Thread):
-    def __init__(self, image_shared_var=None, image_lock=None, *args, **kwargs):
+    def __init__(self,  *args, **kwargs):
         super(RealSenseThread, self).__init__(*args, **kwargs)
 
         self.stop_flag = False
         self.output_queue = Queue(maxsize=100)  # YOLO用キューは最新フレームのみ
-
-        # 映像表示用の共有変数
-        self.image_shared_var = image_shared_var
-        self.image_lock = image_lock
 
         # RealSense pipeline setup
         self.pipeline = rs.pipeline()
@@ -39,16 +35,6 @@ class RealSenseThread(Thread):
 
             color_image = self.convert_to_array(color_frame)
             intrinsics = color_frame.profile.as_video_stream_profile().intrinsics
-
-            # --- 映像表示のための共有変数更新 (メインスレッドの描画源) ---
-            if self.image_shared_var is not None and self.image_lock is not None:
-                with self.image_lock:
-                    # 最新のカラー画像を共有変数にコピー
-                    # image_shared_var が NumPy 配列であれば、[:] でインプレースコピー
-                    self.image_shared_var[:] = color_image
-
-            # --- YOLOスレッドへのデータ投入 (最大サイズ1なので最新フレームのみ) ---
-            # ... (既存のキュー処理ロジックをそのまま使用) ...
 
             self.output_queue.put(
                 (
@@ -84,15 +70,15 @@ class RealSenseThread(Thread):
     def convert_to_array(frame):
         return np.asanyarray(frame.get_data())
 
-    def get_median_depth(self, center_pos, window_size, depth_frame):
+    def get_median_depth(self, center_pos, window_sizex, window_sizey, depth_frame):
         depth_image = self.convert_to_array(depth_frame)
         units = depth_frame.get_units()
 
         center_x, center_y = center_pos
         window = (
             depth_image[
-                int(center_y - window_size / 2) : int(center_y + window_size / 2),
-                int(center_x - window_size / 2) : int(center_x + window_size / 2),
+                int(center_y - window_sizey / 2) : int(center_y + window_sizey / 2),
+                int(center_x - window_sizex / 2) : int(center_x + window_sizex / 2),
             ]
             * units
         )
