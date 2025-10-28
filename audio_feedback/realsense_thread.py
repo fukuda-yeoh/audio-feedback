@@ -6,7 +6,7 @@ import pyrealsense2 as rs
 
 
 class RealSenseThread(Thread):
-    def __init__(self,  *args, **kwargs):
+    def __init__(self, serial_number=None,  *args, **kwargs):
         super(RealSenseThread, self).__init__(*args, **kwargs)
 
         self.stop_flag = False
@@ -15,6 +15,11 @@ class RealSenseThread(Thread):
         # RealSense pipeline setup
         self.pipeline = rs.pipeline()
         self.config = rs.config()
+
+        # 【重要】修正: シリアル番号が指定されていれば、そのデバイスを有効化
+        if serial_number:
+            self.config.enable_device(serial_number)
+            print(f"[RSThread] Enabled device with serial: {serial_number}")
 
         # Enable depth and color streams
         self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)

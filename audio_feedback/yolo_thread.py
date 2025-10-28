@@ -13,9 +13,13 @@ class YOLOThread(threading.Thread):
     YOLO推論を実行し、検出結果（3D座標）を共有データに格納するスレッド。
     """
 
-    def __init__(self, input_queue):
-        super().__init__()
+    def __init__(self, input_queue, *args, **kwargs):
+        super().__init__(*args, **kwargs) # 親クラスに引数を渡す
+        
         self.model = YOLO("yolo_model/runs/detect/train4/weights/best.pt")
+        print(self.model.names)
+
+        self.input_queue = input_queue
         print(self.model.names)
 
         self.input_queue = input_queue
@@ -43,40 +47,40 @@ class YOLOThread(threading.Thread):
                 my_results = []
 
                 # # 単一カメラ、単一物体（最も信頼度の高いもの）を想定
-                # for result in results:
-                #     if result.boxes:
-                #         box = result.boxes  # 最も信頼度の高いボックス
+                for result in results:
+                    if result.boxes:
+                        box = result.boxes  # 最も信頼度の高いボックス
 
-                #         x1, y1, x2, y2 = box.xyxy[0]
-                #         cls = int(box.cls[0])
-                #         conf = float(box.conf[0])
-                #         label = self.model.names[cls]
+                        x1, y1, x2, y2 = box.xyxy[0]
+                        cls = int(box.cls[0])
+                        conf = float(box.conf[0])
+                        label = self.model.names[cls]
 
-                #         cx = int((x1 + x2) / 2)
-                #         cy = int((y1 + y2) / 2)
+                        cx = int((x1 + x2) / 2)
+                        cy = int((y1 + y2) / 2)
 
-                #         my_results.append(((x1, y1, x2, y2), conf, label))
+                        my_results.append(((x1, y1, x2, y2), conf, label))
 
-                #         # 描画
-                #         cv.rectangle(
-                #             self.annotated_frame,
-                #             (int(x1), int(y1)),
-                #             (int(x2), int(y2)),
-                #             (0, 255, 0),
-                #             2,
-                #         )
-                #         text = (
-                #             f"{label} | Confidence: {conf:.2f} )"
-                #         )
-                #         cv.putText(
-                #             self.annotated_frame,
-                #             text,
-                #             (int(x1), int(y1) - 10),
-                #             cv.FONT_HERSHEY_SIMPLEX,
-                #             0.5,
-                #             (255, 255, 255),
-                #             1,
-                #         )
+                        # 描画
+                        cv.rectangle(
+                            self.annotated_frame,
+                            (int(x1), int(y1)),
+                            (int(x2), int(y2)),
+                            (0, 255, 0),
+                            2,
+                        )
+                        text = (
+                            f"{label} | Confidence: {conf:.2f} )"
+                        )
+                        cv.putText(
+                            self.annotated_frame,
+                            text,
+                            (int(x1), int(y1) - 10),
+                            cv.FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            (255, 255, 255),
+                            1,
+                        )
 
                 self.raw_frame = color_image
                 self.depth_frame = depth_frame
