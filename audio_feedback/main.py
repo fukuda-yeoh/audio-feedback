@@ -78,13 +78,19 @@ def main_system():
 
     buffer = synthizer.Buffer.from_file(str(sound_file))
     generator = synthizer.BufferGenerator(context)
+    generator.gain.value = 1
+    generator.pitch_bend.value = 1
     generator.buffer.value = buffer
     generator.looping.value = True
 
     source = synthizer.Source3D(context)
     source.add_generator(generator)
     # source.play() は検出時に行う
-    source_sound_on = False
+    source.distance_model.value = synthizer.DistanceModel.EXPONENTIAL # モデルを指定する
+    source.rolloff.value = 1.0  # 減衰の強さ
+    source.distance_ref.value = 0.4  # 音量が最大となる基準距離
+    source.distance_max.value = 3.2  # 音が聞こえる最大距離
+    source_sound_on = True
 
     # --- 3. スレッドの起動 ---
     yolo_thread = YOLOThread(
@@ -120,7 +126,12 @@ def main_system():
             median_depth = rs_thread.get_median_depth((cx, cy), x2-x1, y2-y1, depth_frame)
             x, y, z = rs_thread.convert_to_3d(depth_frame, median_depth, (cx, cy))
 
+            # Set the ball's position based on its center
+            ball_position = (x, -y, -z)
+            source.position.value = ball_position
+
             cv.putText(
+
                 color_image,
                 f"Position: ({x:.2f}, {y:.2f}, {z:.2f})",
                 (cx - 100, cy - 20),
@@ -130,10 +141,6 @@ def main_system():
                 2,
             )
             cv.circle(color_image, (cx, cy), 10, (0, 255, 0), 2)
-
-            # 立体音響ロジック
-            ball_position = (x, y, z)
-            source.position.value = ball_position
 
             if not source_sound_on:
                 source.play()
@@ -156,10 +163,11 @@ def main_system():
 
         # 画像の表示
         cv.imshow("RealSense Camera", color_image)
+        print(x,y,z)
 
         # キー入力処理 (元のコードから移植)
         key = cv.waitKey(1)
-        # ... (キー入力処理 'd', 'e', 'q' のロジックは省略) ...
+        # ... (キー入力処理 's', 'e', 'q' のロジックは省略) ...
 
         if key == ord("s"):
             if not is_recording:
