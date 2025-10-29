@@ -89,29 +89,32 @@ def main_system():
     camera_map = dict(zip(CAMERA_IDS, device_serials))
 
     # --- 2. Synthizer 初期化 ---
-    try:
-        synthizer.initialize()
-        context = synthizer.Context()
-        context.default_panner_strategy.value = synthizer.PannerStrategy.HRTF
-        context.default_distance_model.value = synthizer.DistanceModel.LINEAR
+    synthizer.initialize()
+    context = synthizer.Context()
+    context.default_panner_strategy.value = synthizer.PannerStrategy.HRTF
+    context.default_distance_model.value = synthizer.DistanceModel.LINEAR
 
-        sound_file = os.path.join(project_root(), "sound_files", "2000Hz.wav")
-        if not os.path.exists(sound_file):
-            print(
-                f"[MAIN] WARNING: Sound file not found at {sound_file}. Ensure path is correct."
-            )
+    sound_file = os.path.join(project_root(), "sound_files", "droplet.wav")
+    if not os.path.exists(sound_file):
+        print(
+            f"[MAIN] WARNING: Sound file not found at {sound_file}. Ensure path is correct."
+        )
 
-        buffer = synthizer.Buffer.from_file(str(sound_file))
-        generator = synthizer.BufferGenerator(context)
-        generator.buffer.value = buffer
-        generator.looping.value = True
+    buffer = synthizer.Buffer.from_file(str(sound_file))
+    generator = synthizer.BufferGenerator(context)
+    generator.gain.value = 1
+    generator.pitch_bend.value = 1
+    generator.buffer.value = buffer
+    generator.looping.value = True
 
-        source = synthizer.Source3D(context)
-        source.add_generator(generator)
-        print("[MAIN] Synthizer initialized.")
-    except Exception as e:
-        print(f"[MAIN] FATAL ERROR during Synthizer initialization: {e}")
-        return
+    source = synthizer.Source3D(context)
+    source.add_generator(generator)
+    # source.play() は検出時に行う
+    source.distance_model.value = synthizer.DistanceModel.EXPONENTIAL # モデルを指定する
+    source.rolloff.value = 1.0  # 減衰の強さ
+    source.distance_ref.value = 0.4  # 音量が最大となる基準距離
+    source.distance_max.value = 3.2  # 音が聞こえる最大距離
+    source_sound_on = True
 
 
     # --- 3. RealSense & YOLO スレッドペアのセットアップと起動 ---
@@ -201,8 +204,8 @@ def main_system():
                     )
                     cv.circle(color_image, (cx, cy), 5, (0, 255, 0), -1)
 
-                    # --- 音響フィードバック (修正: 最後に検出された結果を使用) ---
-                    ball_position = (x, y, z)
+                    # Set the ball's position based on its center
+                    ball_position = (x, -y, -z)
                     source.position.value = ball_position
 
                     if not source_sound_on:
@@ -251,11 +254,14 @@ def main_system():
 
         if key == ord("s"):
             if not is_recording:
+                print("\n[DEBUG] Attempting to start recording for all cameras...")
                 for cid in CAMERA_IDS:
                     video_writers[cid] = start_recording(cid)
+                    print(f"[DEBUG] Started video writer for {cid}")
                 is_recording = True
                 print("\n録画を開始しました")
-        elif key == ord("e"):
+                
+        elif key== ord("e"):
             if is_recording:
                 for writer in video_writers.values():
                     writer.release()
