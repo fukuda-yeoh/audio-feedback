@@ -16,7 +16,7 @@ class YOLOThread(threading.Thread):
     def __init__(self, input_queue, *args, **kwargs):
         super().__init__(*args, **kwargs) # 親クラスに引数を渡す
         
-        self.model = YOLO("yolo_model/runs/detect/train4/weights/best.pt")
+        self.model = YOLO("yolo_model/runs/detect/train26/weights/best.pt")
         print(self.model.names)
 
         self.input_queue = input_queue
