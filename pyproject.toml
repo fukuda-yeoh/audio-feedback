@@ -22,6 +22,7 @@ pyrealsense2 = "^2.55.1.6486"
 torch       = { version = "^2.7", source = "pytorch-cpu", markers = "extra=='cpu' and extra!='cuda'" }
 torchvision = { version = "^0.22", source = "pytorch-cpu", markers = "extra=='cpu' and extra!='cuda'" }
 ultralytics = "^8.3.221"
+pygame = "^2.6.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24"
@@ -30,6 +31,7 @@ matplotlib = "^3.9.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
 
 
 [tool.poetry.group.cuda]
