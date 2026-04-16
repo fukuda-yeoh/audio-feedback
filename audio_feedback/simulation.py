@@ -195,6 +195,7 @@ def run_single_trial(ctx, generator, source, beep_low, beep_high, font):
                 clicked = True
                 source.pause()
 
+        # クリックされていない場合のみ音響と位置を更新
         if not clicked:
             source.position.value = (obj_x, 0.0, current_z)
             dist = np.sqrt(obj_x**2 + current_z**2)
@@ -204,11 +205,19 @@ def run_single_trial(ctx, generator, source, beep_low, beep_high, font):
             except Exception:
                 generator.pitch_bend.value = 1.0
 
+        # 画面描画（クリックされていれば止まった位置で描画される）
         status_text = "CLICKED!" if clicked else ""
         draw_dual_screen(screen, font, status_text, obj_x, current_z, show_ball_on_admin=True)
         
-        current_z -= speed * (1.0 / SIM_FPS)
-        time.sleep(1.0 / SIM_FPS)
+        # --- 修正箇所: 位置の更新制御 ---
+        if not clicked:
+            # クリックされていなければ進む
+            current_z -= speed * (1.0 / SIM_FPS)
+            time.sleep(1.0 / SIM_FPS)
+        else:
+            # クリックされたら進まずに少し待機して終了 (位置を固定して見せる)
+            time.sleep(1.0)
+            return True
     
     source.pause()
     return True
