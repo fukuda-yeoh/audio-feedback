@@ -13,9 +13,13 @@ class YOLOThread(threading.Thread):
     YOLO推論を実行し、検出結果（3D座標）を共有データに格納するスレッド。
     """
 
-    def __init__(self, input_queue):
-        super().__init__()
-        self.model = YOLO("yolo_model/runs/detect/train4/weights/best.pt")
+    def __init__(self, input_queue, *args, **kwargs):
+        super().__init__(*args, **kwargs) # 親クラスに引数を渡す
+        
+        self.model = YOLO("yolo_model/runs/detect/train26/weights/best.pt")
+        print(self.model.names)
+
+        self.input_queue = input_queue
         print(self.model.names)
 
         self.input_queue = input_queue
@@ -42,7 +46,7 @@ class YOLOThread(threading.Thread):
 
                 my_results = []
 
-                # 単一カメラ、単一物体（最も信頼度の高いもの）を想定
+                # # 単一カメラ、単一物体（最も信頼度の高いもの）を想定
                 for result in results:
                     if result.boxes:
                         box = result.boxes  # 最も信頼度の高いボックス
