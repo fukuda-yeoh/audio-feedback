@@ -25,7 +25,7 @@ ultralytics = "^8.3.221"
 pygame = "^2.6.1"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24"
+black = ">=24,<27"
 matplotlib = "^3.9.1"
 
 [build-system]
