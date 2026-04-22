@@ -196,4 +196,3 @@ cython_debug/
 *.jpg
 *.txt
 *.png
-*.pdf
