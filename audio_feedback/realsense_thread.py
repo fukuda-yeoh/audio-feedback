@@ -10,13 +10,12 @@ class RealSenseThread(Thread):
         super(RealSenseThread, self).__init__(*args, **kwargs)
 
         self.stop_flag = False
-        self.output_queue = Queue(maxsize=100)  # YOLO用キューは最新フレームのみ
+        self.output_queue = Queue(maxsize=1)
 
         # RealSense pipeline setup
         self.pipeline = rs.pipeline()
         self.config = rs.config()
 
-        # 【重要】修正: シリアル番号が指定されていれば、そのデバイスを有効化
         if serial_number:
             self.config.enable_device(serial_number)
             print(f"[RSThread] Enabled device with serial: {serial_number}")
@@ -39,32 +38,28 @@ class RealSenseThread(Thread):
                 continue
 
             color_image = self.convert_to_array(color_frame)
-            intrinsics = color_frame.profile.as_video_stream_profile().intrinsics
 
-            self.output_queue.put(
-                (
-                    color_image,  # 1. NumPy配列 (YOLO入力)
-                    depth_frame,  # 2. rs.frame (深度計算用)
-                )
-            )
+            if self.output_queue.full():
+                try:
+                    self.output_queue.get_nowait()
+                except Empty:
+                    pass
+            self.output_queue.put((color_image, depth_frame))
         self.pipeline.stop()
 
     def stop(self):
         self.stop_flag = True
 
     def get_frame(self):
-        # Wait for frames from the RealSense camera
         try:
             frames = self.pipeline.wait_for_frames()
         except RuntimeError:
             return None, None
 
-        # カラーフレームにアライメントする
         aligned_frames = self.align.process(frames)
 
-        # アライメント後のカラー画像と深度画像を取得
-        color_frame = frames.get_color_frame()  # カラー画像
-        depth_frame = frames.get_depth_frame()  # 深度画像
+        color_frame = frames.get_color_frame()
+        depth_frame = frames.get_depth_frame()
 
         if not color_frame or not depth_frame:
             return None, None
@@ -89,18 +84,14 @@ class RealSenseThread(Thread):
         )
         window[window == 0] = np.nan
 
-        # Calculate the median depth from valid points
         median_depth = np.nanmedian(window)
         return median_depth
 
     def get_depth(self, center_pos, depth_frame):
-        depth = depth_frame.get_distance(
-            *center_pos
-        )  # 指定したピクセル位置の深度データを取得
+        depth = depth_frame.get_distance(*center_pos)
         return depth
 
     def convert_to_3d(self, depth_frame, depth, pixel_pos):
-        # ピクセル位置を3D空間の座標に変換
         depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
         x, y, z = rs.rs2_deproject_pixel_to_point(depth_intrin, pixel_pos, depth)
         return x, y, z

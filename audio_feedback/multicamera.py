@@ -10,6 +10,7 @@ import os
 import synthizer
 import csv
 import datetime
+import json
 
 # --- 外部モジュールのインポート ---
 from realsense_thread import RealSenseThread
@@ -17,26 +18,14 @@ from yolo_thread import YOLOThread
 from base_conversion import CameraTransformer
 
 # ==============================================================================
-# 【設定エリア】 カメラの個体識別と配置設定
+# 【設定エリア】 カメラ設定はcamera_config.jsonで管理
 # ==============================================================================
 
-# シリアルナンバー定義
-SERIAL_LEFT  = "845112070212"
-SERIAL_RIGHT = "147122071512"
-
-# 各カメラの配置設定
-CAMERA_SETTINGS = {
-    SERIAL_LEFT: {
-        "id": "Left",
-        "offset": [-0.1, 0.0, 0.0],     # 左に10cm
-        "rotation": [0.0, -30.0, 0.0]   # 左(外)向きに30度
-    },
-    SERIAL_RIGHT: {
-        "id": "Right",
-        "offset": [0.1, 0.0, 0.0],      # 右に10cm
-        "rotation": [0.0, 30.0, 0.0]    # 右(外)向きに30度
-    }
-}
+def load_camera_config(path=None):
+    if path is None:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "camera_config.json")
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
 # ==============================================================================
 
@@ -66,18 +55,15 @@ def create_csv_logger():
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     
-    # ファイル名に日時を入れる
     filename = os.path.join(log_dir, f"tracking_log_{time.strftime('%Y%m%d_%H%M%S')}.csv")
     
-    # ファイルオープン (newline='' はCSVモジュールで必須)
     csv_file = open(filename, mode='w', newline='', encoding='utf-8')
     writer = csv.writer(csv_file)
     
-    # ヘッダー書き込み
     header = [
         "Timestamp", "Camera_ID", "Label", "Confidence",
-        "User_X", "User_Y", "User_Z",  # 統合座標
-        "Raw_X", "Raw_Y", "Raw_Z"      # 生座標(参考用)
+        "User_X", "User_Y", "User_Z",
+        "Raw_X", "Raw_Y", "Raw_Z"
     ]
     writer.writerow(header)
     
@@ -102,11 +88,12 @@ def main_system():
         print("[MAIN] エラー: カメラが見つかりません。")
         return
 
+    CAMERA_SETTINGS = load_camera_config()
+
     # --- 2. Synthizer & CSV 初期化 ---
-    # CSVロガーの準備
     csv_file, csv_writer = create_csv_logger()
 
-    try: # tryブロック開始 (エラー終了時にCSVを閉じるため)
+    try:
         synthizer.initialize()
         context = synthizer.Context()
         context.default_panner_strategy.value = synthizer.PannerStrategy.HRTF
@@ -124,7 +111,6 @@ def main_system():
         source.rolloff.value = 1.0
         source.distance_ref.value = 0.4
         source.distance_max.value = 3.2
-
 
         # --- 3. システム構築 ---
         for serial in connected_serials:
@@ -152,7 +138,6 @@ def main_system():
             else:
                 print(f"[MAIN] 警告: 未登録のカメラ (Serial: {serial}) はスキップします。")
 
-
         # --- 4. メインループ ---
         print("\n[MAIN] システム稼働開始。's':録画, 'e':停止, 'q':終了")
 
@@ -173,16 +158,12 @@ def main_system():
                         (x1, y1, x2, y2), conf, label = results[0]
                         cx, cy = int((x1 + x2) / 2), int((y1 + y2) / 2)
 
-                        # --- A. 3D座標取得 ---
                         w, h = x2 - x1, y2 - y1
                         median_depth = rs_thread.get_median_depth((cx, cy), w, h, depth_frame)
                         cam_x, cam_y, cam_z = rs_thread.convert_to_3d(depth_frame, median_depth, (cx, cy))
 
-                        # --- B. 座標変換 ---
                         user_x, user_y, user_z = transformer.transform_to_head_coords([cam_x, cam_y, cam_z])
 
-                        # --- CSV書き込み (ここに追加) ---
-                        # フォーマット: [Time, ID, Label, Conf, Ux, Uy, Uz, Rx, Ry, Rz]
                         current_time = datetime.datetime.now().strftime("%H:%M:%S.%f")
                         csv_writer.writerow([
                             current_time, cam_id, label, f"{conf:.2f}",
@@ -190,7 +171,6 @@ def main_system():
                             f"{cam_x:.3f}", f"{cam_y:.3f}", f"{cam_z:.3f}"
                         ])
 
-                        # --- C. 描画とフィードバック ---
                         text = f"USER: X{user_x:.2f}, Y{user_y:.2f}, Z{user_z:.2f} | {label}"
                         cv.rectangle(color_image, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
                         cv.putText(color_image, text, (int(x1), int(y1) - 10), cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
@@ -214,7 +194,7 @@ def main_system():
                     print(f"Error in {cam_id}: {e}")
 
             if not processed_any and source_sound_on:
-                pass 
+                pass
 
             key = cv.waitKey(1)
             if key == ord("q"): break
@@ -230,7 +210,6 @@ def main_system():
 
     finally:
         print("\n[MAIN] 終了処理中...")
-        # CSVファイルを閉じる
         if csv_file:
             csv_file.close()
             print("[MAIN] CSVログ保存完了")
