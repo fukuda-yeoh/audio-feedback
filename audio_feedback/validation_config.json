@@ -1,6 +1,6 @@
 {
-    "step": 1,
-    "description": "Step1: カメラ基準位置（オフセットなし・回転なし）",
-    "offset": [0.0, 0.0, 0.0],
+    "step": 2,
+    "description": "Step2: カメラを左に20cm移動（回転なし）",
+    "offset": [-0.2, 0.0, 0.0],
     "rotation": [0.0, 0.0, 0.0]
 }
