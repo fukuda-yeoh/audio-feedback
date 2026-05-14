@@ -16,6 +16,7 @@ X軸回転(Pitch)の場合:
 使い方:
   python rotation_solver.py <step2_csv> <step3_csv>   # ファイル指定
   python rotation_solver.py                            # logsフォルダから自動検出
+  python rotation_solver.py --check-translation        # 移動補正の精度確認
 """
 
 import numpy as np
@@ -37,6 +38,20 @@ def read_raw_coords(csv_path):
             try:
                 x, y, z = float(row["Raw_X"]), float(row["Raw_Y"]), float(row["Raw_Z"])
                 if z > 0 and not np.isnan(z):
+                    points.append([x, y, z])
+            except (ValueError, KeyError):
+                continue
+    return np.array(points) if points else None
+
+
+def read_user_coords(csv_path):
+    points = []
+    with open(csv_path, encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                x, y, z = float(row["User_X"]), float(row["User_Y"]), float(row["User_Z"])
+                if not np.isnan(x):
                     points.append([x, y, z])
             except (ValueError, KeyError):
                 continue
@@ -74,7 +89,57 @@ def find_step_csv(step_num):
     return files[-1] if files else None
 
 
+def check_translation():
+    """Step1とStep2のUser座標を比較して移動補正の精度を確認する"""
+    step1_csv = find_step_csv(1)
+    step2_csv = find_step_csv(2)
+
+    if not step1_csv or not step2_csv:
+        print("エラー: logsフォルダにvalidation_step1_*.csv と validation_step2_*.csv が必要です。")
+        return
+
+    print(f"自動検出:")
+    print(f"  Step1: {os.path.basename(step1_csv)}")
+    print(f"  Step2: {os.path.basename(step2_csv)}")
+
+    pts1 = read_user_coords(step1_csv)
+    pts2 = read_user_coords(step2_csv)
+
+    if pts1 is None or pts2 is None:
+        print("エラー: CSVからUser座標を読み込めません。")
+        return
+
+    u1 = median_point(pts1)
+    u2 = median_point(pts2)
+
+    print(f"\n{'='*55}")
+    print(f"Step 1（基準位置） - 中央値 User座標  ({len(pts1)} サンプル)")
+    print(f"  X={u1[0]:+.4f}m  Y={u1[1]:+.4f}m  Z={u1[2]:+.4f}m")
+    print(f"\nStep 2（20cm左移動） - 中央値 User座標  ({len(pts2)} サンプル)")
+    print(f"  X={u2[0]:+.4f}m  Y={u2[1]:+.4f}m  Z={u2[2]:+.4f}m")
+    print(f"{'='*55}")
+
+    dx = abs(u1[0] - u2[0])
+    dy = abs(u1[1] - u2[1])
+    dz = abs(u1[2] - u2[2])
+
+    print(f"\n【User座標のずれ（Step1 vs Step2）】")
+    print(f"  ΔX = {dx*100:.1f} cm  ← 移動補正の精度（目標: 2cm以下）")
+    print(f"  ΔY = {dy*100:.1f} cm")
+    print(f"  ΔZ = {dz*100:.1f} cm")
+    print()
+    if dx < 0.02:
+        print(f"  ✓ ΔX = {dx*100:.1f}cm → 移動補正OK（誤差2cm以内）")
+    else:
+        print(f"  ✗ ΔX = {dx*100:.1f}cm → 誤差あり（カメラの移動量を確認してください）")
+    print(f"{'='*55}")
+
+
 def main():
+    if "--check-translation" in sys.argv or "-t" in sys.argv:
+        check_translation()
+        return
+
     if len(sys.argv) == 3:
         step2_csv, step3_csv = sys.argv[1], sys.argv[2]
     else:
@@ -83,6 +148,7 @@ def main():
         if not step2_csv or not step3_csv:
             print("エラー: logsフォルダにvalidation_step2_*.csv と validation_step3_*.csv が必要です。")
             print("使い方: python rotation_solver.py <step2.csv> <step3.csv>")
+            print("移動検証: python rotation_solver.py --check-translation")
             return
         print(f"自動検出:")
         print(f"  Step2: {os.path.basename(step2_csv)}")
