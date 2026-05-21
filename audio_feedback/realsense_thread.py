@@ -12,7 +12,6 @@ class RealSenseThread(Thread):
         self.stop_flag = False
         self.output_queue = Queue(maxsize=1)
 
-        # RealSense pipeline setup
         self.pipeline = rs.pipeline()
         self.config = rs.config()
 
@@ -20,16 +19,13 @@ class RealSenseThread(Thread):
             self.config.enable_device(serial_number)
             print(f"[RSThread] Enabled device with serial: {serial_number}")
 
-        # Enable depth and color streams
         self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
         self.config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-        # alignモジュールの定義
         align_to = rs.stream.color
         self.align = rs.align(align_to)
 
     def run(self):
-        # Start streaming
         self.pipeline.start(self.config)
 
         while not self.stop_flag:
@@ -58,8 +54,8 @@ class RealSenseThread(Thread):
 
         aligned_frames = self.align.process(frames)
 
-        color_frame = frames.get_color_frame()
-        depth_frame = frames.get_depth_frame()
+        color_frame = aligned_frames.get_color_frame()
+        depth_frame = aligned_frames.get_depth_frame()
 
         if not color_frame or not depth_frame:
             return None, None
